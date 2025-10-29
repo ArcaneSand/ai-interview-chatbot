@@ -13,11 +13,11 @@ import FormField from "@/components/FormField";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase/client";
-import { signUp } from "@/lib/actions/auth.action";
+import { signIn, signUp } from "@/lib/actions/auth.action";
 
 const authFormSchema = (type: FormType) => {
   return z.object({
-    name: type === "sign-in" ? z.string().min(3) : z.string().optional(),
+    name: type === "sign-up" ? z.string().min(3) : z.string().optional(),
     email: z.string().email(),
     password: z.string().min(3),
   });
@@ -39,15 +39,9 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('click');
     try {
-      if (type === "sign-in") {
-        const {email,password} = values;
-        const userCredentials = await signInWithEmailAndPassword(auth, email, password);
-
-        //const idToken = await userCredent
-        toast.success("Signed in successfully!");
-        rounter.push("/");
-      } else {
+      if (type === "sign-up") {
         const {name,email,password} = values;
         const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -64,6 +58,20 @@ const AuthForm = ({ type }: { type: FormType }) => {
         }
         toast.success("Account created successfully!");
         rounter.push("/sign-in");
+      } else {
+        const {email,password} = values;
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        if(!idToken){
+          toast.error('Signin fail');
+          return;
+        }
+        await signIn({
+          email,idToken
+        })
+        
+        toast.success("Signed in successfully!");
+        rounter.push("/");
       }
     } catch (error) {
       console.log(error);
@@ -87,7 +95,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-full space-y-6 mt-4 form"
           >
-            {isSignIn && <FormField control={form.control} name="name" label="Name" placeholder="John Doe" />}
+            {!isSignIn && <FormField control={form.control} name="name" label="Name" placeholder="John Doe" />}
             <FormField control={form.control} name="email" label="Email" placeholder="you@example.com" />
             <FormField control={form.control} name="password" label="Password" placeholder="enter your password" type="password" />
             <Button className="btn" type="submit">

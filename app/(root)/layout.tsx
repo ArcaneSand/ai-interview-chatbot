@@ -1,6 +1,7 @@
 import Link  from 'next/link';
 import React from 'react'
 import Image from 'next/image'
+import { Toaster } from 'sonner';
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -12,6 +13,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
         </Link>
       </nav>
       {children}
+      <Toaster/>
     </div>
   )
 }
