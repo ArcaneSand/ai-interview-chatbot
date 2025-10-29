@@ -1,6 +1,7 @@
 'use server';
 
 import { auth, db } from "@/firebase/admin";
+import { FirebaseError } from "firebase/app";
 import { cookies } from "next/headers";
 
 const ONE_WEEK = 60*60*24*7;
@@ -24,7 +25,7 @@ export async function signUp(params: SignUpParams){
       message: 'Account create successfully. Please sign in'
     }
     
-  } catch(e: any){
+  } catch(e:any){
     console.error('Error creating user:', e);
 
     if(e.code === 'auth/email-already-exists'){
