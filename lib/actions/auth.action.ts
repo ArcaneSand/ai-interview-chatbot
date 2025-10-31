@@ -1,10 +1,25 @@
 'use server';
 
 import { auth, db } from "@/firebase/admin";
-import { FirebaseError } from "firebase/app";
 import { cookies } from "next/headers";
 
 const ONE_WEEK = 60*60*24*7;
+
+export async function setSessionCookie(idToken: string) {
+  const cookieStore = await cookies();
+
+  const sessionCookie = await auth.createSessionCookie(idToken, {
+    expiresIn: ONE_WEEK * 1000,
+  });
+
+  cookieStore.set('session', sessionCookie, {
+    maxAge: ONE_WEEK,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path : '/',
+    sameSite: 'lax',
+  });
+}
 
 export async function signUp(params: SignUpParams){
   const {uid,name,email} = params;
@@ -52,7 +67,7 @@ export async function signIn(params:SignInParams){
         message: 'Can not find user record',
       }
     }
-    setSessionCookie(idToken);
+    await setSessionCookie(idToken);
   }catch(e){
     console.log(e)
 
@@ -63,21 +78,7 @@ export async function signIn(params:SignInParams){
   }
 }
 
-export async function setSessionCookie(idToken: string) {
-  const cookieStore = await cookies();
 
-  const sessionCookie = await auth.createSessionCookie(idToken, {
-    expiresIn: ONE_WEEK * 1000,
-  })
-
-  cookieStore.set('session', sessionCookie, {
-    maxAge: ONE_WEEK,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path : '/',
-    sameSite: 'lax',
-  })
-}
 
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -103,6 +104,18 @@ export async function getCurrentUser(): Promise<User | null> {
 
 export async function isAuthenticated(){
   const user = await getCurrentUser();
-
   return !!user; 
+}
+
+export async function getInterviewByUserId(userId:string): Promise<Interview[]| null> {
+  const interviews = await db
+    .collection('interviews')
+    .where('userId','==','userId')
+    .orderBy('createdAt', 'desc')
+    .get();
+    
+  return interviews.docs.map((doc)=>({
+    id:doc.id,
+    ...doc.data()
+  })) as Interview[]
 }
